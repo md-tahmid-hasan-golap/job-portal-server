@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config()
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express()
 port = process.env.PORT || 3000;
 
@@ -30,11 +30,52 @@ async function run() {
     await client.connect();
 
 
+    // job collaction
+    const jobCollaction = client.db("jobPortal").collection("jobs")
+    const applicationCallaction = client.db("jobPortal").collection("application")
 
 
+    // get oparation 
+    app.get('/jobs', async(req, res) => {
+        const result = await jobCollaction.find().toArray()
+        res.send(result)
+    })
 
 
+ // jobs Details
+ app.get('/jobsDetails/:id', async(req, res) => {
+    const id = req.params.id
+    const queary = {_id: new ObjectId(id)}
+    const result = await jobCollaction.findOne(queary)
+    res.send(result)
+ })
 
+ // job application
+ app.post('/application', async(req,res) => {
+    const newApplicant = req.body
+    const result = await applicationCallaction.insertOne(newApplicant)
+    res.send(result)
+ })
+
+
+ app.get('/application', async(req,res) => {
+    const email = req.query.email
+    const query = {
+        applicantEmail:  email
+    }
+    const result = await applicationCallaction.find(query).toArray()
+
+    // bad way
+    for(const application of result){
+        const jobId = application.jobId
+        const jonQuery = {_id: new ObjectId(jobId)}
+        const job = await jobCollaction.findOne(jonQuery)
+         application.company = job.company
+         application.title = job.title
+          application.company_logo = job.company_logo
+    }
+    res.send(result)
+ })
 
 
 
